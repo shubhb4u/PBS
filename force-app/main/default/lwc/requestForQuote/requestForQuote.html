@@ -1,0 +1,30 @@
+<!-- inputComponent.html -->
+<template>
+    <template if:false={cardHidden}>
+        <lightning-button variant="brand" label="Request Quote" onclick={handleClick}></lightning-button>
+    </template>
+
+    <template if:true={cardVisible}>
+        <lightning-card title="Request for Quote">
+            <div class="slds-p-around_medium">
+                <!-- Quote Needed By Input -->
+                <lightning-input type="date" label="Quote needed by" value={quoteNeededBy} onchange={handleQuoteNeededByChange}></lightning-input>
+
+                <!-- Reason for Quote Input -->
+                <lightning-textarea label="Reason for quote" value={reasonForQuote} onchange={handleReasonForQuoteChange}></lightning-textarea>
+
+                <!-- Submit Button -->
+                <lightning-button label="Submit" onclick={handleSubmit} variant="brand"></lightning-button>
+
+                <!-- Success Animation -->
+                <template if:true={quoteSubmitted}>
+                    <div class="success-animation">
+                        <p>Quote Submitted</p>
+                        <img src="./image/images.png" alt="Success Icon">
+                        <!-- Add other elements or components for your success animation -->
+                    </div>
+                </template>
+            </div>
+        </lightning-card>
+    </template>
+</template>
