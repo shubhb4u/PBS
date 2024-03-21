@@ -1,19 +1,27 @@
 public with sharing class QuoteController {
 
+
     @AuraEnabled
-    public static Id createQuoteWithLineItems(String productId, Integer quantity, String reason, Id contactId) {
+    public static List<Quote> createQuoteWithLineItems(String cartId, String productId, Integer quantity, String reason, String contactId) {
+
+
         // Get the current user's Id
         Id currentUserId = UserInfo.getUserId();
         System.debug('Current User Id: ' + currentUserId);
 
         // Retrieve the User's ContactId
-        Id userContactId = contactId;
+        String userContactId = contactId;
         System.debug('User Contact Id: ' + userContactId);
 
         // Retrieve the User's Contact record
-        Contact userContact = [SELECT Id, Name, email, Phone FROM Contact WHERE Id = :userContactId LIMIT 1];
+        Contact userContact = [SELECT Id, Name, email, Phone, accountId FROM Contact WHERE Id = :userContactId LIMIT 1];
         System.debug('User Contact: ' + userContact);
 
+
+        //Retrieve AccountId from userContact - 
+        List<Account> accList = [Select Id, name from account where Id =: userContact.accountId limit 1];
+        Id accId = accList[0].Id;
+        System.debug('acc is: ' +  accList[0].name);
 
         //Get PriiceBookId  - 
         Id priceBookId = getpriceBookId();
@@ -22,20 +30,26 @@ public with sharing class QuoteController {
         priceBookEntry pbEntry = getProductPrice(productId, priceBookId);
         //System.debug('Unit Price for Product (' + productId + '): ' + unitPrice);
 
+        //Create a new opportunity - 
+        opportunity opp = createOpp(accId, productId, pbentry);
+        Id oppId  = opp.id;
+        System.debug('oppId is ->.' + oppId);
+
         // Create a new quote
-        Id quoteId = createQuote(currentUserId, userContact, priceBookId, reason);
-        System.debug('New Quote Id: ' + quoteId);
+        List<Quote> quoteList = createQuote(currentUserId, userContact, priceBookId, reason, opp);
+        System.debug('New Quote Id: ' + quoteList[0].Id);
 
         // Create quote line items
-        if (quoteId != null) {
-            createQuoteLineItems(quoteId, productId, quantity, pbEntry);
+        if (quoteList[0].Id != null && oppId != null) {
+            createQuoteLineItems(quoteList[0].Id, productId, quantity, pbEntry);
         }
 
-        return quoteId;
+        return quoteList;
     }
 
     //Retrieve pricebook to be used to select products for Quote line items  -  
     // ---->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Modify this hardcoded pricebookid later - ---------------------------------------
+
     private static Id getpriceBookId(){
 
         id priceBookId;
@@ -60,22 +74,45 @@ public with sharing class QuoteController {
         return pbEntry;
     }
 
+    public static opportunity createOpp(Id accId, String ProducId, PricebookEntry pbEntry){
+        
+        Opportunity opp = new Opportunity();
+            
+            opp.name = 'Quote creation opp '+ Date.today();
+            opp.accountId = accId;
+            opp.currencyIsoCode = 'USD';
+            opp.closeDate  =  Date.today()+30;
+            opp.StageName =  'Prospecting';
+            opp.amount = pbEntry.UnitPrice;
+            insert opp;
+            
+        return opp;
+    }
+
 
     // Create a new quote record
-    private static Id createQuote(Id userId, Contact userContact, Id pbId, String reason) {
+    private static List<Quote> createQuote(Id userId, Contact userContact, Id pbId, String reason, opportunity opp) {
+
+        List<Quote> createdQuote =  new List<Quote>();
         Quote newQuote = new Quote();
         newQuote.Name = 'New Quote ' + userContact.Name;
         newQuote.OwnerId = userId; // Assign the current user as the owner of the quote
         newQuote.ContactId = userContact.Id;
-        //newQuote.ExpirationDate  = expDate;
+        newQuote.ExpirationDate  = opp.closeDate;
         newQuote.description  = reason;
         newQuote.status  = 'Draft';
         newQuote.email  =  userContact.email;
         newQuote.phone  =  userContact.Phone;
         newQuote.Pricebook2Id =  pbId;
-        insert newQuote;
+        NewQuote.OpportunityId = opp.Id;
+        createdQuote.add(newQuote);
+
+        if(!createdQuote.isEmpty()){
+            insert createdQuote;
+        }
+        // insert newQuote;
         System.debug('new quote  -->> '  +  newQuote);
-        return newQuote.Id;
+        return createdQuote;
     }
 
     // Create quote line items for the specified product and quantity
@@ -97,8 +134,59 @@ public with sharing class QuoteController {
             System.debug('Error: PricebookEntry is null.');
         }
     }
+
+    @AuraEnabled
+    public static List<Quote> createQuoteWithLineItemsFromCart(String cartId, String productId, Integer quantity, String reason, String contactId) {
+
+
+        // Get the current user's Id
+        Id currentUserId = UserInfo.getUserId();
+        System.debug('Current User Id: ' + currentUserId);
+
+        // Retrieve the User's ContactId
+        String userContactId = contactId;
+        System.debug('User Contact Id: ' + userContactId);
+
+        // Retrieve the User's Contact record
+        Contact userContact = [SELECT Id, Name, email, Phone, accountId FROM Contact WHERE Id = :userContactId LIMIT 1];
+        System.debug('User Contact: ' + userContact);
+
+        //Retrieve AccountId from userContact - 
+        List<Account> accList = [Select Id, name from account where Id =: userContact.accountId limit 1];
+        Id accId = accList[0].Id;
+        System.debug('acc is: ' +  accList[0].name);
+
+        //Get PriiceBookId  - 
+        Id priceBookId = getpriceBookId();
+
+        // Get the product price from PriceBook
+        priceBookEntry pbEntry = getProductPrice(productId, priceBookId);
+        //System.debug('Unit Price for Product (' + productId + '): ' + unitPrice);
+
+        //Create a new opportunity - 
+        opportunity opp = createOpp(accId, productId, pbentry);
+        Id oppId  = opp.id;
+        System.debug('oppId is ->.' + oppId);
+
+        // Create a new quote
+        List<Quote> quoteList = createQuote(currentUserId, userContact, priceBookId, reason, opp);
+        System.debug('New Quote Id: ' + quoteList[0].Id);
+
+        // Create quote line items
+        if (quoteList[0].Id != null && oppId != null) {
+            createQuoteLineItems(quoteList[0].Id, productId, quantity, pbEntry);
+        }
+
+        return quoteList;
+    }
+
+
+    @AuraEnabled(cacheable=true)
+    public static List<Quote> getPreviousQuotes(String  contactId) {
+ 
+        List<Quote> previousQuotes = [Select id, name, status, expirationDate from quote where createdById =: contactId];
+        return previousQuotes;
+
+    }
+
 }
-
-
-
-    

@@ -1,66 +1,80 @@
-import { LightningElement, track, wire, api } from 'lwc';
-import { CurrentPageReference } from 'lightning/navigation';
-import createQuoteWithLineItemsWebCart from '@salesforce/apex/QuoteController.createQuoteWithLineItemsWebCart';
-import getCartDetails from '@salesforce/apex/QuoteController.getCartDetails';
+import { LightningElement, api, wire, track } from "lwc";
+import Success_Icon from "@salesforce/resourceUrl/PBS_Success_Icon";
+import createQuoteWithLineItemsFromCart from "@salesforce/apex/QuoteController.createQuoteWithLineItemsFromCart";
+import getPreviousQuotes from "@salesforce/apex/QuoteController.getPreviousQuotes";
+import { getRecord, getFieldValue } from "lightning/uiRecordApi";
+import CONTACT_ID from "@salesforce/schema/User.ContactId";
+import USER_ID from "@salesforce/user/Id";
 
-export default class RequestForQuote extends LightningElement {
+
+import { CartSummaryAdapter } from "commerce/cartApi";
+
+
+export default class requestForQuote extends LightningElement {
+
+
+    @api recordId;
     @track cardHidden = false;
     @track cardVisible = false;
-    @track quoteNeededBy;
-    @track reasonForQuote;
     @track quoteSubmitted = false;
-    @track cart;
-    @api recordId; // Use recordId provided by Lightning Web Component
-    @wire(CurrentPageReference)
-    pageRef;
+    @api effectiveAccountId;
+    @track contactId;
+    @track currentCartidId;
+    @track reason;
+    @track insertedQuoteData =  [];
+    successIcon = Success_Icon;
 
-    connectedCallback() {
-        // Fetch cart details based on the recordId when the component is connected to the DOM
-        this.getCartDetails();
-    }
 
-    getCartDetails() {
-        // Call Apex method to retrieve cart details based on recordId
-        getCartDetails({ recordId: this.recordId })
-            .then(result => {
-                this.cart = result;
-            })
-            .catch(error => {
-                console.error('Error fetching cart details:', error);
-            });
-    }
-
-   
-
-    handleClick() { 
-        // Handle click event if needed
-    }
-
-    handleQuoteNeededByChange(event) {
-        // Handle quote needed by change if needed
-        this.quoteNeededBy = event.target.value;
-    }
-
-    handleReasonForQuoteChange(event) {
-        // Handle reason for quote change if needed
-        this.reasonForQuote = event.target.value;
-    }
-
-    handleSubmit() {
-        // Call Apex method to create quote and quote line items
-        if (this.cart) {
-            createQuoteWithLineItemsWebCart({ cart: this.cart })
-                .then(result => {
-                    // Handle success response
-                    console.log('Quote created successfully:', result);
-                    this.quoteSubmitted = true;
-                })
-                .catch(error => {
-                    // Handle error response
-                    console.error('Error creating quote:', error);
-                });
-        } else {
-            console.error('No cart details available.');
+    @wire(CartSummaryAdapter)
+    setCartSummary({ data, error }) {
+        if (data) {
+            this.cartSummary  = data;
+            console.log("Cart Id", data.cartId);
+            this.currentCartidId = data.cartId;
+        } else if (error) {
+            console.error(error);
         }
     }
+
+    //Getting the current logged in customer  contact -
+    @wire(getRecord, { recordId: USER_ID, fields: [CONTACT_ID] })
+    user({ data, error }) {
+        if (data) {
+            this.contactId = getFieldValue(data, CONTACT_ID);
+            console.log("data ->>>", this.contactId);
+
+        } else if (error) {
+            console.error("Error fetching user data:", error);
+        }
+    }
+
+    handleClick() {
+        this.cardHidden = true;
+        this.cardVisible = true;
+        this.insertedQuoteData = getPreviousQuotes(this.contactId);
+        console.log('insertedQuoteData -->>',  this.insertedQuoteData);
+    }
+
+    handleReasonChange(event){
+        this.reason = event.target.value;
+    }
+
+    handleRequestQuote() {
+        createQuoteWithLineItemsFromCart({
+            cartId: this.currentCartidId,
+            productId: '01tHp00000B7IqpIAF',
+            quantity: 3,
+            reason: this.reason,
+            contactId: this.contactId
+        })
+            .then((result) => {
+                console.log("Quote created successfully:", result);
+                this.quoteSubmitted = true;
+                
+            })
+            .catch((error) => {
+                console.error("Error creating quote:", error);
+            });
+    }
+    
 }

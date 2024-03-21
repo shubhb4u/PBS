@@ -5,17 +5,19 @@
     <template if:true={cardVisible}>
             <lightning-card title="Request For Quote">
                 <div class="slds-p-around_medium">
-                    <p>Name: {productName}</p>
-                    <!-- <lightning-input type="date" label="Needed By" value={neededBy} onchange={handleDateChange}></lightning-input> -->
+                    <p>Name: {reason}</p>
+                    <lightning-input type="date" label="Needed By" value={neededBy} onchange={handleDateChange}></lightning-input>
                     <lightning-input type="text" label="Reason" value={reason} onchange={handleReasonChange}></lightning-input>
                     <lightning-input type="number" label="Quantity" value={quantity} onchange={handleQuantityChange}></lightning-input>
                     <lightning-button label="Request Quote" onclick={handleRequestQuote}></lightning-button>
                     <!-- Success Animation -->
                     <template if:true={quoteSubmitted}>
                         <div class="success-animation">
-                            <p>Quote Submitted</p>
                             <img style="max-height: 40px" src={successIcon} alt="Success Icon">
                         </div>
+                        <template for:each={insertedQuoteData} for:item="item">
+                            <p key={item.Id}>{item.Id} {item.name} {item.Phone} {item.status}</p>
+                        </template>
                     </template>
                 </div>
             </lightning-card>
