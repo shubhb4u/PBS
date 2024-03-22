@@ -30,7 +30,7 @@ public with sharing class QuoteController {
         System.debug('priceBookId is ->>   '+ priceBookId);
 
         //Get priceBookEntry -  
-        priceBookEntry  pbEntry  = getProductPrice(productId, priceBookId)();
+        priceBookEntry  pbEntry  = getProductPrice(productId, priceBookId);
         System.debug('pbEntry is ->>   '+ pbEntry);
 
         // Create Opportunity
@@ -38,11 +38,12 @@ public with sharing class QuoteController {
         System.debug('opp is ->>   '+ opp);
 
         // Create Quote
-        Quote quote = createQuote(opp.Id, reason, contactId, qty, productId);
+        Quote quote = createQuote(opp.Id, reason, userContact );
         System.debug('quote is ->>   '+ quote);
 
+       
         // Create Quote Line Items and Opportunity Line Items from Cart
-        List<QuoteLineItem> quoteLineItems = createQuoteLineItems( quote.Id, opp.Id, priceBookId, qty);
+        List<QuoteLineItem> quoteLineItems = createQuoteLineItems( quote.Id, productId, pbEntry,  qty);
         System.debug('quoteLineItems are ->>   '+ quoteLineItems);
 
         return quote;
@@ -71,7 +72,7 @@ public with sharing class QuoteController {
         return pbEntry;
     }
 
-    public static opportunity createOpp(Id accId, String ProducId, PricebookEntry pbEntry, Integer qty){
+    public static opportunity createOpp(Id accId, String ProducId, Integer qty, PricebookEntry pbEntry ){
         
         List<OpportunityLineItem> oppLineItems = new List<OpportunityLineItem>();
         //Get priceBookEntries for creating quoteLineItems - 
@@ -105,7 +106,7 @@ public with sharing class QuoteController {
 
 
     // Create a new quote record
-    private static Quote createQuote( Contact userContact, Id pbId, String reason, opportunity opp) {
+    private static Quote createQuote( Id oppId, String reason, Contact userContact ) {
 
         Quote newQuote = new Quote(
             Status = 'Draft',
@@ -115,7 +116,7 @@ public with sharing class QuoteController {
             ExpirationDate = Date.today().addDays(30),
             Description = reason,
             ContactId = userContact.id,
-            OpportunityId = opp.Id
+            OpportunityId = oppId
         );
         insert newQuote;
         System.debug('new quote  -->> '  +  newQuote);
@@ -123,8 +124,9 @@ public with sharing class QuoteController {
 
     }
 
+  
     // Create quote line items for the specified product and quantity
-    private static void createQuoteLineItems(Id quoteId, String productId, Integer quantity, PricebookEntry pbEntry, Integer qty ) {
+    private static List<QuoteLineItem> createQuoteLineItems(Id quoteId, String productId,  PricebookEntry pbEntry, Integer qty ) {
         System.debug('Entered quoteLineItem  -->> ');
         List<QuoteLineItem> quoteLineItems = new List<QuoteLineItem>();
 
@@ -139,6 +141,7 @@ public with sharing class QuoteController {
             if(!quoteLineItems.isEmpty()){
                 insert quoteLineItems;
             }
+            return quoteLineItems;
     }
 
 
