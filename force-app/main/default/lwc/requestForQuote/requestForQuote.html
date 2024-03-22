@@ -3,22 +3,25 @@
         <lightning-button variant="brand" label="Request Quote" onclick={handleClick}></lightning-button>
     </template>
     <template if:true={cardVisible}>
-            <lightning-card title="Request For Quote">
-                <div class="slds-p-around_medium">
-                    <p>Name: {reason}</p>
-                    <lightning-input type="text" label="Reason" value={reason} onchange={handleReasonChange}></lightning-input>
-                    <lightning-button label="Request Quote" onclick={handleRequestQuote}></lightning-button>
-                    <!-- Success Animation -->
-                    <template if:true={quoteSubmitted}>
-                        <div class="success-animation">
-                            <img style="max-height: 40px" src={successIcon} alt="Success Icon">
-                        </div>
-                        <template for:each={insertedQuoteData} for:item="item">
-                            <p key={item.Id}>{item.Id} {item.name} {item.Phone} {item.status}</p>
-                        </template>
-                    </template>
-                </div>
-            </lightning-card>
-        
+        <lightning-card title="Request For Quote">
+            <div class="slds-p-around_medium">
+                <p>Name: {reason}</p>
+                <lightning-input type="text" label="Reason" value={reason} onchange={handleReasonChange}></lightning-input>
+                <lightning-button label="Request Quote" onclick={handleRequestQuote}></lightning-button>
+                <!-- Success Animation -->
+                <template if:true={quoteSubmitted}>
+                    <div class="success-animation">
+                        <img style="max-height: 40px" src={successIcon} alt="Success Icon">
+                    </div>
+                </template>
+            </div>
+        </lightning-card>
     </template>
+    <lightning-layout multiple-rows="true" size="12">
+        <template for:each={insertedQuoteData} for:item="item">
+            <lightning-layout-item key={item.Id}>
+                {item.name} {item.Phone} {item.status}
+            </lightning-layout-item>
+        </template>
+    </lightning-layout>
 </template>

@@ -51,9 +51,20 @@ export default class requestForQuote extends LightningElement {
     handleClick() {
         this.cardHidden = true;
         this.cardVisible = true;
-        this.insertedQuoteData = getPreviousQuotes(this.contactId);
-        console.log('insertedQuoteData -->>',  this.insertedQuoteData);
+        getPreviousQuotes({
+            ownerId : this.contactId
+        })
+            .then((result) => {
+                console.log('insertedQuoteData -->>',  this.insertedQuoteData);
+                this.insertedQuoteData = result;
+                
+            })
+            .catch((error) => {
+                console.error("insertedfQuote error", error);
+            });
+        
     }
+
 
     handleReasonChange(event){
         this.reason = event.target.value;
@@ -62,8 +73,6 @@ export default class requestForQuote extends LightningElement {
     handleRequestQuote() {
         createQuoteWithLineItemsFromCart({
             cartId: this.currentCartidId,
-            productId: '01tHp00000B7IqpIAF',
-            quantity: 3,
             reason: this.reason,
             contactId: this.contactId
         })
