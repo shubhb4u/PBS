@@ -5,8 +5,6 @@
     <template if:true={cardVisible}>
             <lightning-card title="Request For Quote">
                 <div class="slds-p-around_medium">
-                    <p>Name: {reason}</p>
-                    <lightning-input type="date" label="Needed By" value={neededBy} onchange={handleDateChange}></lightning-input>
                     <lightning-input type="text" label="Reason" value={reason} onchange={handleReasonChange}></lightning-input>
                     <lightning-input type="number" label="Quantity" value={quantity} onchange={handleQuantityChange}></lightning-input>
                     <lightning-button label="Request Quote" onclick={handleRequestQuote}></lightning-button>

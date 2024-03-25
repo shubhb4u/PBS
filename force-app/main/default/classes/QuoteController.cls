@@ -10,7 +10,7 @@ public with sharing class QuoteController {
 
 
     @AuraEnabled
-    public static Quote createQuoteWithLineItems(String cartId, String productId, Integer qty, String reason, String contactId) {
+    public static Quote createQuoteWithLineItems( String productId, Integer qty, String reason, String contactId) {
 
 
         // Retrieve the User's Contact record
@@ -34,7 +34,7 @@ public with sharing class QuoteController {
         System.debug('pbEntry is ->>   '+ pbEntry);
 
         // Create Opportunity
-        Opportunity opp = createOpp(acc.Id, priceBookId, qty, pbEntry);
+        Opportunity opp = createOpp(acc.Id, priceBookId, productId, qty, pbEntry);
         System.debug('opp is ->>   '+ opp);
 
         // Create Quote
@@ -62,7 +62,10 @@ public with sharing class QuoteController {
         
         PricebookEntry pbEntry;
         try {
-            pbEntry = [SELECT id,UnitPrice FROM PricebookEntry WHERE Product2Id = :productId and Pricebook2Id =: priceBookId LIMIT 1];
+            // pbEntry = [SELECT id,UnitPrice FROM PricebookEntry WHERE Product2Id = :productId and Pricebook2Id =: priceBookId LIMIT 1];
+            List<PricebookEntry> pricebookEntry = [SELECT Id, Pricebook2Id, unitPrice FROM PricebookEntry WHERE Product2Id = :productId 
+            AND Pricebook2Id =: priceBookId];
+            pbEntry = pricebookEntry[0];
             System.debug(pbEntry);
 
         } catch (Exception e) {
@@ -72,7 +75,7 @@ public with sharing class QuoteController {
         return pbEntry;
     }
 
-    public static opportunity createOpp(Id accId, String ProducId, Integer qty, PricebookEntry pbEntry ){
+    public static opportunity createOpp(Id accId, Id priceBookId, Id producId, Integer qty, PricebookEntry pbEntry ){
         
         List<OpportunityLineItem> oppLineItems = new List<OpportunityLineItem>();
         //Get priceBookEntries for creating quoteLineItems - 
@@ -84,17 +87,21 @@ public with sharing class QuoteController {
             opp.currencyIsoCode = 'USD';
             opp.closeDate  =  Date.today()+30;
             opp.StageName =  'Prospecting';
-            opp.amount = pbEntry.UnitPrice;
+            opp.Pricebook2Id = priceBookId;
+            opp.amount = pbEntry.UnitPrice * qty ;
             insert opp;
+            System.debug('opp is -->> ' +   opp);
 
-            oppLineItems.add(new OpportunityLineItem(
-                OpportunityId = opp.Id,
-                Product2Id = ProducId,
-                Quantity = qty,
-                
-                // ListPrice = item.ListPrice, Field in not writeable
-                TotalPrice = pbEntry.UnitPrice * qty
-            ));
+                if(opp !=null  && pbEntry != null){
+
+                    oppLineItems.add(new OpportunityLineItem(
+                    OpportunityId = opp.Id,
+                    Product2Id = producId,
+                    Quantity = qty,
+                    UnitPrice = pbEntry.UnitPrice
+                ));
+            }
+            
 
             if(!oppLineItems.isempty()){
                 insert oppLineItems;
@@ -145,7 +152,7 @@ public with sharing class QuoteController {
     }
 
 
-    // Method for processing cart items - 
+    // Method for processing cart items - ----------------------------------------------------------------------------------------------------------------------------------------------
 
     @AuraEnabled
     public static Quote createQuoteWithLineItemsFromCart(String cartId, String reason, String contactId) {

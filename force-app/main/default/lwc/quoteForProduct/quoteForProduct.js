@@ -1,7 +1,6 @@
 import { LightningElement, api, wire, track } from "lwc";
 import Success_Icon from "@salesforce/resourceUrl/PBS_Success_Icon";
 import createQuoteWithLineItems from "@salesforce/apex/QuoteController.createQuoteWithLineItems";
-import getProduct from "@salesforce/apex/getProductDetails.getProductDetails";
 import { getRecord, getFieldValue } from "lightning/uiRecordApi";
 import CONTACT_ID from "@salesforce/schema/User.ContactId";
 import USER_ID from "@salesforce/user/Id";
@@ -60,16 +59,7 @@ export default class QuoteForProduct extends LightningElement {
         this.quantity = event.target.value;
     }
 
-    handleDateChange(event) {
-
-        const selectedDate = event.target.value;
-        // const formattedDate = selectedDate.split('T')[0];
-        this.expirationDate = selectedDate;
-
-        console.log('expirationDate-..>>', this.expirationDate);
-        console.log('expirationDate-..>>', typeof(this.expirationDate));
-        
-    }
+    
 
     handleReasonChange(event) {
         this.reason = event.target.value;
@@ -79,10 +69,9 @@ export default class QuoteForProduct extends LightningElement {
     handleRequestQuote() {
         createQuoteWithLineItems({
             productId: this.recordId,
-            quantity: this.quantity,
+            qty: this.quantity,
             reason: this.reason,
-            contactId: this.contactId,
-            expirationDate: this.expirationDate
+            contactId: this.contactId
         })
             .then((result) => {
                 console.log("Quote created successfully:", result);
