@@ -1,0 +1,28 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 03-25-2024
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="slds-box slds-theme_default">
+        <div class="slds-grid slds-wrap">
+            <template for:each={Quotes} for:item="quote">
+                <div key={quote.Id} class="slds-col slds-size_1-of-3">
+                    <div class="slds-box slds-p-around_small">
+                        <p>Name: {quote.Id}</p>
+                        <p>Name: {quote.Name}</p>
+                        <p>Status: {quote.Status}</p>
+                        <p>Expiration Date: {quote.ExpirationDate}</p>
+                        <p>Total Price: {quote.TotalPrice}</p>
+                        <button class="slds-button slds-button_neutral" onclick={handleViewCode} data-quote-id={quote.Id}
+                        data-quote-name={quote.Name}>View Quote</button>
+
+                        <button class="slds-button slds-button_neutral" onclick={handleDownloadQuotePdf} data-quote-downid={quote.Id}>Download Quote</button>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+</template>
